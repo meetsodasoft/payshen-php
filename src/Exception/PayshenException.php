@@ -26,6 +26,13 @@ class PayshenException extends \RuntimeException
      */
     public ?array $excluded = null;
 
+    /**
+     * On a refund answered `refund_pending`, `refund_result_unknown`, `psp_error` or `state_unconfirmed`: the id of
+     * the refund it is about, the same `refund_id` a later `payment.refunded` or `payment.refund_failed` webhook
+     * carries. Null otherwise.
+     */
+    public ?string $refundId = null;
+
     public function __construct(
         public readonly int $status,
         public readonly string $errorCode,
