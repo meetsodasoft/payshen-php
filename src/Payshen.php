@@ -31,7 +31,7 @@ use Payshen\Service\Suggestions;
  */
 final class Payshen
 {
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.1.1';
 
     /** HTTP statuses worth another attempt, as in the TypeScript SDK. */
     private const RETRY_STATUSES = [408, 425, 429, 500, 502, 503, 504];
@@ -215,6 +215,9 @@ final class Payshen
         $e->requestId = $response->header('x-request-id');
         if (is_array($error['excluded'] ?? null)) {
             $e->excluded = array_values($error['excluded']);
+        }
+        if (is_string($error['refund_id'] ?? null)) {
+            $e->refundId = $error['refund_id'];
         }
         return $e;
     }

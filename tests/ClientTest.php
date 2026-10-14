@@ -188,6 +188,24 @@ final class ClientTest extends TestCase
         }
     }
 
+    public function testAPendingRefundNamesTheRefundItIsAbout(): void
+    {
+        $t = new FakeTransport(FakeTransport::json(409, ['error' => ['code' => 'refund_pending', 'message' => 'Still processing.', 'refund_id' => 'b1f0c2d4-0000-4000-8000-000000000001']]));
+        try {
+            $this->client($t)->payments->refund('pay_1', ['amount' => 200]);
+            $this->fail('expected an exception');
+        } catch (PayshenException $e) {
+            $this->assertSame('refund_pending', $e->errorCode);
+            $this->assertSame('b1f0c2d4-0000-4000-8000-000000000001', $e->refundId);
+        }
+        $t2 = new FakeTransport(FakeTransport::json(422, ['error' => ['code' => 'invalid_amount', 'message' => 'No.']]));
+        try {
+            $this->client($t2)->payments->refund('pay_1', ['amount' => 9]);
+        } catch (PayshenException $e) {
+            $this->assertNull($e->refundId);
+        }
+    }
+
     public function testNoAnswerAtAllBecomesANetworkErrorAfterTheRetries(): void
     {
         $t = new FakeTransport(new TransportException('timeout'), new TransportException('timeout'), new TransportException('timeout'), new TransportException('timeout'));
