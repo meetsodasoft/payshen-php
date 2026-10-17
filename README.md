@@ -85,8 +85,13 @@ use Payshen\Webhook;
 
 $raw = file_get_contents('php://input'); // the RAW body: a body re-encoded from json_decode never verifies
 
+$secret = getenv('PAYSHEN_WEBHOOK_SECRET');
+if (!is_string($secret) || $secret === '') {
+    throw new RuntimeException('PAYSHEN_WEBHOOK_SECRET is not set'); // never verify against an empty secret
+}
+
 try {
-    $event = Webhook::parseEvent($raw, $_SERVER['HTTP_X_PAYSHEN_SIGNATURE'] ?? null, getenv('PAYSHEN_WEBHOOK_SECRET'));
+    $event = Webhook::parseEvent($raw, $_SERVER['HTTP_X_PAYSHEN_SIGNATURE'] ?? null, $secret);
 } catch (SignatureVerificationException $e) {
     http_response_code(400);
     exit;

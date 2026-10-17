@@ -39,6 +39,8 @@ final class CurlTransport implements Transport
             // A redirect on an API call is a misconfigured base URL; following
             // it would turn a POST into a GET or send the key somewhere else.
             CURLOPT_FOLLOWLOCATION => false,
+            // HTTP(S) only, whatever the URL says: no file://, ftp:// or the like.
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_CONNECTTIMEOUT_MS => (int) round($this->connectTimeoutSeconds * 1000),

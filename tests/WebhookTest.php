@@ -60,6 +60,17 @@ final class WebhookTest extends TestCase
         }
     }
 
+    public function testAnEmptySecretNeverVerifiesAForgery(): void
+    {
+        // Signed with an empty key, which anyone can do.
+        $forged = self::header(self::NOW, self::BODY, '');
+        $this->assertSame('missing_secret', self::refusal(fn () => Webhook::verifySignature(self::BODY, $forged, '', now: self::NOW)));
+        $this->assertSame('missing_secret', self::refusal(fn () => Webhook::verifySignature(self::BODY, $forged, ['', ''], now: self::NOW)));
+        // A rotation whose old secret is no longer set: the empty one is ignored, the real one still decides.
+        $this->assertSame('invalid_signature', self::refusal(fn () => Webhook::verifySignature(self::BODY, $forged, [self::SECRET, ''], now: self::NOW)));
+        $this->assertSame('accepted', self::refusal(fn () => Webhook::verifySignature(self::BODY, self::header(self::NOW), [self::SECRET, ''], now: self::NOW)));
+    }
+
     public function testEitherSecretVerifiesDuringARotation(): void
     {
         $this->assertSame('accepted', self::refusal(fn () => Webhook::verifySignature(self::BODY, self::header(self::NOW), ['whsec_new', self::SECRET], now: self::NOW)));

@@ -31,7 +31,7 @@ use Payshen\Service\Suggestions;
  */
 final class Payshen
 {
-    public const VERSION = '0.1.1';
+    public const VERSION = '0.1.2';
 
     /** HTTP statuses worth another attempt, as in the TypeScript SDK. */
     private const RETRY_STATUSES = [408, 425, 429, 500, 502, 503, 504];
@@ -92,6 +92,10 @@ final class Payshen
             && preg_match('#^http://(localhost|127\.0\.0\.1|\[::1\])(:|/|$)#i', $this->baseUrl) !== 1) {
             throw new \InvalidArgumentException('Payshen base_url must use https: an API key sent over plain HTTP is readable in transit.');
         }
+        // Any other scheme (ftp://, file://...) is never the API, and curl would speak it.
+        if (preg_match('#^https?://#i', $this->baseUrl) !== 1) {
+            throw new \InvalidArgumentException('Payshen base_url must be an https URL.');
+        }
         $this->timeout = (float) ($options['timeout'] ?? 20);
         $this->maxRetries = max(0, (int) ($options['max_retries'] ?? 3));
         $this->transport = $options['transport'] ?? new CurlTransport(10.0, $options['ca_bundle'] ?? null);
@@ -133,6 +137,13 @@ final class Payshen
         // Without a key, a retry after a connection dropped AFTER the server
         // created the payment would create a second one. The caller's key wins:
         // only the caller knows whether two calls are the same operation.
+        // The key goes into a header line: CR or LF in it would add headers of
+        // the caller's (or an attacker's) choosing. The API's own rule, checked
+        // here so a bad key never leaves the process.
+        if (isset($options['idempotency_key'])
+            && (!is_string($options['idempotency_key']) || preg_match('/^[\x20-\x7E]{8,200}$/', $options['idempotency_key']) !== 1)) {
+            throw new \InvalidArgumentException('idempotency_key must be 8-200 printable ASCII characters.');
+        }
         if ($method === 'POST') {
             $headers['Idempotency-Key'] = $options['idempotency_key'] ?? 'sdk_' . bin2hex(random_bytes(16));
         } elseif (isset($options['idempotency_key'])) {

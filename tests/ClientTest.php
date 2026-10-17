@@ -57,6 +57,34 @@ final class ClientTest extends TestCase
         $this->assertSame([], $this->slept);
     }
 
+    public function testAnIdempotencyKeyThatCouldSplitAHeaderIsRefusedBeforeSending(): void
+    {
+        $t = new FakeTransport();
+        foreach (["order-1\r\nX-Injected: yes", "order-1\nX", 'short', str_repeat('k', 201)] as $bad) {
+            try {
+                $this->client($t)->payments->create(['amount' => 1000, 'currency' => 'EUR', 'country' => 'DE'], ['idempotency_key' => $bad]);
+                $this->fail('accepted ' . json_encode($bad));
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringContainsString('idempotency_key', $e->getMessage());
+            }
+        }
+        $this->assertSame([], $t->sent, 'nothing is sent');
+    }
+
+    public function testOnlyAnHttpsBaseUrlIsAccepted(): void
+    {
+        foreach (['ftp://api.payshen.com', 'file:///etc/passwd', 'http://api.example.com'] as $bad) {
+            try {
+                new Payshen('ps_test_abc', ['base_url' => $bad, 'transport' => new FakeTransport()]);
+                $this->fail('accepted ' . $bad);
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringContainsString('https', $e->getMessage());
+            }
+        }
+        new Payshen('ps_test_abc', ['base_url' => 'http://localhost:8080', 'transport' => new FakeTransport()]);
+        $this->addToAssertionCount(1);
+    }
+
     public function testEveryPostCarriesAKeyEvenWhenTheCallerGaveNone(): void
     {
         $t = new FakeTransport(FakeTransport::json(201, ['data' => self::PAYMENT]), FakeTransport::json(200, ['data' => self::PAYMENT]));
