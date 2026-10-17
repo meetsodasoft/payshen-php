@@ -63,7 +63,14 @@ final class Webhook
             throw new SignatureVerificationException('expired_signature', 'Signature timestamp outside tolerance window.');
         }
 
-        $secrets = is_array($secret) ? array_values($secret) : [$secret];
+        // An empty secret signs with an empty key, which anyone can do: it is
+        // never a candidate. getenv() of an unset variable is false, which
+        // becomes '' in a caller without strict types, and a rotation list may
+        // carry an old secret that is no longer set. With nothing left, refuse.
+        $secrets = array_values(array_filter(
+            is_array($secret) ? $secret : [$secret],
+            static fn ($s): bool => is_string($s) && $s !== '',
+        ));
         if ($secrets === []) {
             throw new SignatureVerificationException('missing_secret', 'No signing secret was provided.');
         }

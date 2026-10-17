@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.2
+
+2026-10-17. Security fixes; upgrade.
+
+- **Webhook verification never accepts an empty secret.** `Webhook::verifySignature` and `parseEvent` ignore an empty
+  or non-string secret, and refuse with `missing_secret` when none is left. Before, a secret read from an unset
+  environment variable (`getenv()` returns `false`, which becomes `''` without strict types), or an empty old secret in
+  a rotation list, let anyone sign a forged event with an empty key.
+- **`idempotency_key` is checked before it is sent**: 8 to 200 printable ASCII characters, the API's own rule. A key
+  with a line break could add request headers of its own.
+- **`base_url` must be `https://`** (`http://` for localhost only), and curl is limited to HTTP(S).
+- The README's webhook example fails fast when the secret is not set.
+
 ## 0.1.1
 
 2026-10-14. Additive; nothing you use changes.
