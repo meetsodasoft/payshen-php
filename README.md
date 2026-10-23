@@ -6,10 +6,18 @@ them, read their timeline, and verify the webhooks Payshen sends.
 Payshen routes each payment to one of the providers you already have (Stripe, Adyen, Checkout.com, payabl. and
 more). Payshen never holds or moves money: payments run on your own provider accounts.
 
-- PHP 8.1 or newer, with `ext-curl` and `ext-json`. No other dependencies.
+- PHP 8.2 or newer, with `ext-curl` and `ext-json`. No other dependencies.
 - Every POST carries an `Idempotency-Key`, so a retry after a dropped connection never charges twice.
 - Retries with backoff and jitter, on the answers worth retrying and never on the ones the API says not to.
 - Typed exceptions with the API's own error code and the request id support will ask for.
+
+## Keep PHP patched
+
+Run a PHP that has the 21 October 2026 security release: **8.2.35, 8.3.36, 8.4.27, 8.5.12** or newer (or your
+Linux distribution's patched package). It fixes CVE-2026-109618 and CVE-2026-109619 ("PHP2Shell"), two flaws in PHP
+itself that let anyone run code on a server that handles web requests, before any application code runs. This
+library contains no affected code and cannot protect against them; only updating PHP does. See
+[php.net](https://www.php.net/) and [Payshen's notice](https://www.payshen.com/security/advisories/php2shell).
 
 ## Install
 

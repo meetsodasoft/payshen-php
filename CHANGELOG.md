@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0
+
+2026-10-23. Requires PHP 8.2 or newer. Your code does not change.
+
+- **Update PHP itself first.** PHP's 21 October 2026 security release (8.2.35, 8.3.36, 8.4.27, 8.5.12) fixes
+  CVE-2026-109618 and CVE-2026-109619 ("PHP2Shell"): unauthenticated remote code execution in PHP's request handling,
+  exploited in the wild. The flaws are in PHP, not in this library, and no version of this library prevents them.
+- **PHP 8.1 is no longer supported.** It reached end of life in December 2025 and has no official fix for these
+  flaws. On PHP 8.1 Composer keeps installing 0.1.2, which keeps working; move to a supported PHP to get later releases.
+- Tested on PHP 8.2, 8.3, 8.4 and 8.5.
+
 ## 0.1.2
 
 2026-10-17. Security fixes; upgrade.
