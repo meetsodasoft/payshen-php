@@ -17,7 +17,7 @@ final class CurlTransport implements Transport
     ) {
     }
 
-    public function send(string $method, string $url, array $headers, ?string $body, float $timeoutSeconds): Response
+    public function send(string $method, string $url, #[\SensitiveParameter] array $headers, ?string $body, float $timeoutSeconds): Response
     {
         $ch = curl_init($url);
         if ($ch === false) {

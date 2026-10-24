@@ -19,5 +19,5 @@ interface Transport
      *
      * @throws TransportException when no answer came
      */
-    public function send(string $method, string $url, array $headers, ?string $body, float $timeoutSeconds): Response;
+    public function send(string $method, string $url, #[\SensitiveParameter] array $headers, ?string $body, float $timeoutSeconds): Response;
 }

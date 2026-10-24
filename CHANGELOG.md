@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1
+
+2026-10-24. Security fixes; upgrade. Your code does not change.
+
+- **The API key stays out of dumps and traces.** `var_dump` and `print_r` of the client (or of a service, which holds
+  it) show `ps_live_…1a2b` instead of the key. The key constructor argument and the transport's `send()` headers are
+  marked `#[\SensitiveParameter]`, so an exception trace with arguments shows `SensitiveParameterValue` in their
+  place. A custom `Transport` should mark its own `$headers` the same way.
+- **Ids are checked before they become part of the path**: 1 to 128 letters, digits, `_` or `-`, or
+  `InvalidArgumentException` and nothing is sent. Before, `payments->get('.')` read the payment list and
+  `payments->refund('..')` posted to another route, because `.` and `..` pass URL encoding unchanged.
+
 ## 0.2.0
 
 2026-10-23. Requires PHP 8.2 or newer. Your code does not change.

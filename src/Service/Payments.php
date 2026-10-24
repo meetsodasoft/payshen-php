@@ -36,7 +36,7 @@ final class Payments
     /** @return array<string, mixed> */
     public function get(string $id): array
     {
-        return $this->client->request('GET', '/api/v1/payments/' . rawurlencode($id))['data'] ?? [];
+        return $this->client->request('GET', '/api/v1/payments/' . PathId::of($id))['data'] ?? [];
     }
 
     /**
@@ -73,7 +73,7 @@ final class Payments
      */
     public function events(string $id): array
     {
-        $answer = $this->client->request('GET', '/api/v1/payments/' . rawurlencode($id) . '/events');
+        $answer = $this->client->request('GET', '/api/v1/payments/' . PathId::of($id) . '/events');
         return is_array($answer['data'] ?? null) ? array_values($answer['data']) : [];
     }
 
@@ -90,7 +90,7 @@ final class Payments
      */
     public function capture(string $id, array $input = [], array $options = []): array
     {
-        return $this->client->request('POST', '/api/v1/payments/' . rawurlencode($id) . '/capture', $input, $options)['data'] ?? [];
+        return $this->client->request('POST', '/api/v1/payments/' . PathId::of($id) . '/capture', $input, $options)['data'] ?? [];
     }
 
     /**
@@ -101,7 +101,7 @@ final class Payments
      */
     public function void(string $id, array $options = []): array
     {
-        return $this->client->request('POST', '/api/v1/payments/' . rawurlencode($id) . '/void', [], $options)['data'] ?? [];
+        return $this->client->request('POST', '/api/v1/payments/' . PathId::of($id) . '/void', [], $options)['data'] ?? [];
     }
 
     /**
@@ -119,6 +119,6 @@ final class Payments
      */
     public function refund(string $id, array $input = [], array $options = []): array
     {
-        return $this->client->request('POST', '/api/v1/payments/' . rawurlencode($id) . '/refunds', $input, $options)['data'] ?? [];
+        return $this->client->request('POST', '/api/v1/payments/' . PathId::of($id) . '/refunds', $input, $options)['data'] ?? [];
     }
 }

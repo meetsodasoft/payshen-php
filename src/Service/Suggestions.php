@@ -26,7 +26,7 @@ final class Suggestions
     /** @return array<string, mixed> */
     public function get(string $id): array
     {
-        return $this->client->request('GET', '/api/v1/suggestions/' . rawurlencode($id))['data'] ?? [];
+        return $this->client->request('GET', '/api/v1/suggestions/' . PathId::of($id))['data'] ?? [];
     }
 
     /**
@@ -37,7 +37,7 @@ final class Suggestions
      */
     public function accept(string $id, array $options = []): array
     {
-        $answer = $this->client->request('POST', '/api/v1/suggestions/' . rawurlencode($id) . '/accept', [], $options);
+        $answer = $this->client->request('POST', '/api/v1/suggestions/' . PathId::of($id) . '/accept', [], $options);
         return ['data' => $answer['data'] ?? [], 'result' => is_array($answer['result'] ?? null) ? $answer['result'] : null];
     }
 
@@ -48,7 +48,7 @@ final class Suggestions
      */
     public function reject(string $id, array $input = [], array $options = []): array
     {
-        return $this->client->request('POST', '/api/v1/suggestions/' . rawurlencode($id) . '/reject', $input, $options)['data'] ?? [];
+        return $this->client->request('POST', '/api/v1/suggestions/' . PathId::of($id) . '/reject', $input, $options)['data'] ?? [];
     }
 
     /**
@@ -59,6 +59,6 @@ final class Suggestions
      */
     public function snooze(string $id, array $options = []): array
     {
-        return $this->client->request('POST', '/api/v1/suggestions/' . rawurlencode($id) . '/snooze', [], $options)['data'] ?? [];
+        return $this->client->request('POST', '/api/v1/suggestions/' . PathId::of($id) . '/snooze', [], $options)['data'] ?? [];
     }
 }

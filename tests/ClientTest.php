@@ -111,11 +111,43 @@ final class ClientTest extends TestCase
         $this->assertSame('https://www.payshen.com/api/v1/payments/pay_2/void', $t->sent[1]['url']);
     }
 
-    public function testIdsAreEncodedIntoThePath(): void
+    public function testAnIdThatIsNotAnIdIsRefusedBeforeSending(): void
     {
-        $t = new FakeTransport(FakeTransport::json(200, ['data' => self::PAYMENT]));
-        $this->client($t)->payments->get('a/b?c');
-        $this->assertSame('https://www.payshen.com/api/v1/payments/a%2Fb%3Fc', $t->sent[0]['url']);
+        $t = new FakeTransport();
+        $client = $this->client($t);
+        $calls = [
+            'payments.get' => fn (string $id) => $client->payments->get($id),
+            'payments.events' => fn (string $id) => $client->payments->events($id),
+            'payments.capture' => fn (string $id) => $client->payments->capture($id),
+            'payments.void' => fn (string $id) => $client->payments->void($id),
+            'payments.refund' => fn (string $id) => $client->payments->refund($id),
+            'suggestions.get' => fn (string $id) => $client->suggestions->get($id),
+            'suggestions.accept' => fn (string $id) => $client->suggestions->accept($id),
+            'suggestions.reject' => fn (string $id) => $client->suggestions->reject($id),
+            'suggestions.snooze' => fn (string $id) => $client->suggestions->snooze($id),
+        ];
+        // "." would read the list, ".." another route; the rest are not ids.
+        foreach ($calls as $name => $call) {
+            foreach (['', '.', '..', 'a/b?c', 'pay_1/../x', "pay_1
+", 'pay 1', str_repeat('a', 129)] as $bad) {
+                try {
+                    $call($bad);
+                    $this->fail($name . ' accepted ' . json_encode($bad));
+                } catch (\InvalidArgumentException $e) {
+                    $this->assertStringContainsString('id must be', $e->getMessage());
+                }
+            }
+        }
+        $this->assertSame([], $t->sent, 'nothing is sent');
+    }
+
+    public function testAnIdOfLettersDigitsUnderscoreAndDashGoesIntoThePath(): void
+    {
+        $t = new FakeTransport(FakeTransport::json(200, ['data' => self::PAYMENT]), FakeTransport::json(200, ['data' => []]));
+        $this->client($t)->payments->get('pay_01J-xY9');
+        $this->client($t)->suggestions->get(str_repeat('s', 128));
+        $this->assertSame('https://www.payshen.com/api/v1/payments/pay_01J-xY9', $t->sent[0]['url']);
+        $this->assertSame('https://www.payshen.com/api/v1/suggestions/' . str_repeat('s', 128), $t->sent[1]['url']);
     }
 
     public function testARetryReusesTheSameKeySoItCannotChargeTwice(): void
@@ -293,6 +325,57 @@ final class ClientTest extends TestCase
         $t = new FakeTransport(FakeTransport::json(200, ['data' => self::PAYMENT]));
         $this->client($t, ['base_url' => 'http://127.0.0.1:4010/'])->payments->get('pay_1');
         $this->assertSame('http://127.0.0.1:4010/api/v1/payments/pay_1', $t->sent[0]['url']);
+    }
+
+    public function testADumpOfTheClientNeverShowsTheKey(): void
+    {
+        $key = 'ps_live_4f9c2a7e1b8d6053sEcReT9x7Q';
+        $client = new Payshen($key, ['transport' => new FakeTransport()]);
+
+        ob_start();
+        var_dump($client);
+        $dumped = (string) ob_get_clean();
+        $printed = print_r($client, true);
+        // A service holds the client, so dumping one dumps the client too.
+        $service = print_r($client->payments, true);
+
+        foreach ([$dumped, $printed, $service] as $out) {
+            $this->assertStringNotContainsString($key, $out);
+            $this->assertStringNotContainsString('sEcReT', $out);
+            $this->assertStringContainsString('ps_live_…9x7Q', $out);
+        }
+        // Too short to show any of it.
+        $this->assertStringContainsString('[redacted]', print_r($this->client(new FakeTransport()), true));
+        $this->assertStringNotContainsString('ps_test_abc', print_r($this->client(new FakeTransport()), true));
+    }
+
+    public function testTheKeyIsLeftOutOfExceptionTraces(): void
+    {
+        // Traces carry arguments unless php.ini drops them; make sure they are on.
+        $previous = ini_set('zend.exception_ignore_args', '0');
+        $key = 'ps_live_4f9c2a7e1b8d6053sEcReT9x7Q';
+        try {
+            try {
+                new Payshen($key, ['base_url' => 'ftp://api.payshen.com']);
+                $this->fail('accepted ftp');
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringNotContainsString('sEcReT', print_r($e->getTrace(), true));
+            }
+            // The real transport, against a port nothing listens on: the trace
+            // passes through send() with the Authorization header.
+            try {
+                (new Payshen($key, ['base_url' => 'http://127.0.0.1:9', 'max_retries' => 0, 'timeout' => 2]))->payments->get('pay_1');
+                $this->fail('no exception');
+            } catch (NetworkException $e) {
+                $this->assertInstanceOf(TransportException::class, $e->getPrevious());
+                $trace = print_r($e->getPrevious()->getTrace(), true);
+                $this->assertStringContainsString('SensitiveParameterValue', $trace);
+                $this->assertStringNotContainsString('sEcReT', $trace);
+                $this->assertStringNotContainsString('sEcReT', print_r($e->getTrace(), true));
+            }
+        } finally {
+            ini_set('zend.exception_ignore_args', (string) $previous);
+        }
     }
 
     public function testAKeyThatIsNotAPayshenKeyIsRefusedAtOnce(): void

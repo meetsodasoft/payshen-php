@@ -31,7 +31,7 @@ use Payshen\Service\Suggestions;
  */
 final class Payshen
 {
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.2.1';
 
     /** HTTP statuses worth another attempt, as in the TypeScript SDK. */
     private const RETRY_STATUSES = [408, 425, 429, 500, 502, 503, 504];
@@ -80,7 +80,7 @@ final class Payshen
      *            `ca_bundle`: a PEM file of trusted roots, for a PHP with none configured;
      *            `sleep` receives milliseconds (tests pass a recorder).
      */
-    public function __construct(private readonly string $apiKey, array $options = [])
+    public function __construct(#[\SensitiveParameter] private readonly string $apiKey, array $options = [])
     {
         if ($apiKey === '' || !str_starts_with($apiKey, 'ps_')) {
             throw new \InvalidArgumentException('A Payshen API key (ps_test_... or ps_live_...) is required.');
@@ -108,6 +108,31 @@ final class Payshen
         $this->insights = new Insights($this);
         $this->suggestions = new Suggestions($this);
         $this->merchants = new Merchants($this);
+    }
+
+    /**
+     * What var_dump and print_r show: the settings, never the key. A dump
+     * pasted into a ticket or a log would otherwise carry a working key.
+     *
+     * @return array<string, mixed>
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'apiKey' => self::redact($this->apiKey),
+            'baseUrl' => $this->baseUrl,
+            'timeout' => $this->timeout,
+            'maxRetries' => $this->maxRetries,
+        ];
+    }
+
+    /** `ps_live_…1a2b`: enough to tell keys apart, too little to use one. */
+    private static function redact(string $key): string
+    {
+        if (preg_match('/^(ps_[a-z]+_)(.{12,})$/D', $key, $m) === 1) {
+            return $m[1] . '…' . substr($m[2], -4);
+        }
+        return '[redacted]';
     }
 
     /**
