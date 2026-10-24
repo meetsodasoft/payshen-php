@@ -128,8 +128,7 @@ final class ClientTest extends TestCase
         ];
         // "." would read the list, ".." another route; the rest are not ids.
         foreach ($calls as $name => $call) {
-            foreach (['', '.', '..', 'a/b?c', 'pay_1/../x', "pay_1
-", 'pay 1', str_repeat('a', 129)] as $bad) {
+            foreach (['', '.', '..', 'a/b?c', 'pay_1/../x', "pay_1\n", 'pay 1', str_repeat('a', 129)] as $bad) {
                 try {
                     $call($bad);
                     $this->fail($name . ' accepted ' . json_encode($bad));
